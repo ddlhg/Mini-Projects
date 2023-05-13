@@ -1,0 +1,176 @@
+/********************PROGRAM HEADER***************************
+DANIELA HERRERA
+Description: This program will calculate the tax, the net cost, and the total cost of a sports
+             equipment order with different tax rates depending on the location ID.
+*************************************************************/
+#include <iostream> //Standard library for i/o.
+#include <string> //Always include this when you use the string class.
+#include <fstream> //You must include this library if you wish to do file i/o.
+
+using namespace std;
+
+//The following is the declaration of an equipmentRecord
+struct equipmentRecord
+{
+    string phoneNumber;
+    string itemName;
+    string itemNumber;
+    int quantity;
+    double price;
+    int locationID;
+    double taxRate;
+    double tax;
+    double netCost;
+    double totalCost;
+};
+
+//Declaration of function prototypes:
+void GetDataInput(ifstream&, equipmentRecord&);
+//Precondition: connected to a file, must have a valid equipmentRecord.
+//Postcondition: one line of data has been read from the file.
+//Description: reads the data from one equipmentRecord in the file.
+
+void ProcessData(equipmentRecord&);
+//Precondition: 
+//Postcondition:
+//Description: 
+
+void GetTaxRate(double&, int);
+//Precondition: the value for locationID must be valid (number from 1 to 51) before calling the function.
+//Postcondition: taxRate will be set based on the value for locationID.
+//Description: gets the tax rate depending on the valid value for locationID.  
+
+void DisplayOutput(const equipmentRecord&);
+//Precondition: all the variables must be known before calling the function.
+//Postcondition:every variable will be printed. Double variables will have two decimal places.
+//Description: displays all the variables.
+
+int main()
+{
+    cout.setf(ios::fixed);
+    cout.setf(ios::showpoint);
+    cout.precision(2);
+    string name;
+    cout << "Enter your first name: ";
+    cin >> name;
+    cout << name << ", Let's get started processing the file data." << endl << endl;
+
+    equipmentRecord recordData; //declare an equipmentRecord object
+
+    ifstream in; //declaring an input file stream
+    in.open("sportsEquipment.txt"); //connect to the input file with the file name
+
+    if (in.fail())
+    {
+        cout << "Input file did not open correctly" << endl;
+    }
+    else
+    {
+        //cout << "connected to the input file." << endl;
+
+        while (!in.eof()) //has not reached the end of the file
+        {
+            GetDataInput(in, recordData);
+            GetTaxRate(recordData.taxRate, recordData.locationID);
+            ProcessData(recordData);
+            DisplayOutput(recordData);
+
+        }
+    }
+    //close the file stream
+    cout << "\nHave a great day, " << name << "!";
+    return  0;
+}
+
+//Function Implementtions:
+///*************************************************************************************
+//Name: GetDataInput
+//Precondition: connected to a file, must have a valid equipmentRecord.
+//Postcondition: one line of data has been read from the file.
+//Description: reads the data from one equipmentRecord in the file.
+//PURPOSE: CALL BY REFERENCE Parameters, struct dot operator, and file input
+//*************************************************************************************
+void GetDataInput(ifstream& in, equipmentRecord& currentRecord) //into the equipment record, currentRecord
+{
+    in >> currentRecord.phoneNumber;
+    in >> currentRecord.itemName;
+    in >> currentRecord.itemNumber;
+    in >> currentRecord.quantity;
+    in >> currentRecord.price;
+    in >> currentRecord.locationID;
+}
+
+//Name: ProcessData
+//Precondition: State what is true before the function is called.
+//Postcondition: State what is true after the function has executed.
+//Description: get the tax rate and make calculations.
+//PURPOSE:  pass a struct object using CALL BY REFERENCE
+//*************************************************************************************
+void ProcessData(equipmentRecord& currentRecord)
+{
+    GetTaxRate(currentRecord.taxRate, currentRecord.locationID);
+    currentRecord.tax = currentRecord.price * currentRecord.quantity * currentRecord.taxRate;
+    currentRecord.netCost = currentRecord.price * currentRecord.quantity;
+    currentRecord.totalCost = currentRecord.tax + currentRecord.netCost;
+}
+
+//Name: GetTaxRate 
+//Precondition: the value for locationID must be entered and valid (a number from 1 to 51) before calling the function.
+//Postcondition: taxRate will be set based on the value for locationID.
+//Description: gets the tax rate depending on the valid value for locationID. 
+//PURPOSE: USE CALL BY REFERENCE (taxRate) and call by value (locID) Parameters.
+//*************************************************************************************
+void GetTaxRate(double& taxRate, int locationID) //use the locationID to get the taxRate
+{
+    if (locationID == 1)
+        taxRate = .0725;
+    else if (locationID >= 2 && locationID <= 5)
+        taxRate = .07;
+    else if (locationID >= 6 && locationID <= 7)
+        taxRate = .0685;
+    else if (locationID >= 8 && locationID <= 15)
+        taxRate = .065;
+    else if (locationID >= 16 && locationID <= 27)
+        taxRate = .06;
+    else if (locationID >= 28 && locationID <= 33)
+        taxRate = .055;
+    else if (locationID >= 34 && locationID <= 35)
+        taxRate = .05;
+    else if (locationID >= 36 && locationID <= 40)
+        taxRate = .0445;
+    else if (locationID >= 41 && locationID <= 45)
+        taxRate = .04;
+    else if (locationID == 46)
+        taxRate = .0290;
+    else if (locationID >= 47 || locationID <= 51)
+        taxRate = .00;
+}
+
+//Name:  DisplayOutput
+//Precondition: all the variables must be known before calling the function.
+//Postcondition:every variable will be printed. Double variables will have two decimal places.
+//Description: prints the results onto the screen.
+//set the number of decimal places for doubles
+//called the magic formula
+//cout.setf(ios::fixed);
+//cout.setf(ios::showpoint);
+//cout.precision(2); //use any number here for the number of decimal places
+//*************************************************************************************
+void DisplayOutput(const equipmentRecord& currentRecord)
+{
+    //set the number of decimal places for doubles.
+    cout.setf(ios::fixed);
+    cout.setf(ios::showpoint);
+    cout.precision(2); // (2) number of decimal places.
+
+    cout << currentRecord.phoneNumber << "\t";
+    cout << currentRecord.itemName << "\t";
+    cout << currentRecord.itemNumber << "\t";
+    cout << "Quantity: " << currentRecord.quantity << "\t";
+    cout << "Price: " << currentRecord.price << "\t";
+    cout << "Tax rate: " << currentRecord.taxRate << "\t";
+
+    cout << "Tax: $" << currentRecord.tax << "\t";
+    cout << "Net Cost: $" << currentRecord.netCost << "\t";
+    cout << "Total Cost: $" << currentRecord.totalCost << "\t" << endl;
+}
