@@ -1,0 +1,400 @@
+/*************************PROGRAM HEADER****************************
+DANIELA HERRERA
+Due Date: 07/07/2022
+Course:  C0P3014
+Assignment: Program 6
+Professor: Sorgente
+Description: hangman game that allows multiple players to play.
+********************************************************************/
+#define _CRT_SECURE_NO_WARNINGS
+#include <iostream> //to use standard library for i/o
+#include <fstream> //to use files
+#include <string>  //to use strings
+#include <vector> //to use  vectors
+#include <cstdlib> //for exit() if the file does not open
+using namespace std;
+
+//Declaration of a round of gameHangman
+class gameHangman
+{
+public:
+	string name;
+	string solutionWord; //solution word
+	char starWord[20] = "";//hint word made of *
+	char letters[20] = "";//letters guessed so far (right or wrong)
+	int letterCount = 0;//number of letters guessed so far (right or wrong)
+	char letterGuess = ' ';//current letter guess
+	int incorrectCount = 0; //keep track of the number of incorrect guesses
+	int maxGuesses = 6; //six guesses for hangman
+	int wordLength = 0;//length of the solution word
+	bool correctLetter = false;//flag to set if the letter is in the word
+	bool wonOrLost = 0; //true or false for the current round of the game
+};
+
+//Function Prototypes:
+void HangmanRules();
+//Precondition: no variables need to be declared before calling this function.
+//Postcondition: the rules of the hangman game are displayed.
+//Description: displays instructions to the user on how to play the game.
+
+void PlayOneRound(ifstream& in, const string& name, gameHangman& currentGame);
+//Precondition: the program has connected to the input file, the data variable (string),
+//             and object (gameHangman) have been declared.
+//Postcondition: one round of the game Hangman has been completed.
+//Description: plays one round of the game. Called functions: SetUpOneRound, GetLetterGuess,
+//            UpdateLettersArray, CorrectLetterGuess, and DrawHangman.
+
+void SetUpOneRound(ifstream& in, gameHangman& currentGame);
+//Precondition: the program has connected to the input file and currentGame has been declared. 
+//Postcondition: one round of the game has been set.
+//Description: sets up each round of the game, calls the function CreateStarArray.
+
+void CreateStarArray(gameHangman& currentGame);
+//Precondition: the object currentGame has been declared. 
+//Postcondition: creates the array of *.
+//Description: gets the length of the solution word and create the hint word of "*".
+
+void GetLetterGuess(gameHangman& currentGame);
+//Precondition: the object currentGame has been declared.
+//Postcondition: starWord and letters guessed are displayed. 
+//Description: displays the hint (star array) and the letters guessed so far.
+//             Then gets a character guess from the user.
+
+void UpdateLettersArray(gameHangman& currentGame);
+//Precondition: the object currentGame has been declared.
+//Postcondition: the letter guessed is store in the letters array.
+//Description: adds the guessed letter (correct and incorrect) to the letters guessed array.
+
+bool CorrectLetterGuess(gameHangman& currentGame);
+//Precondition: the object currentGame has been declared.
+//Postcondition: if the letter guessed is in the solution word, adds the letter to the
+//             hint (starword) and returns true.
+//Description: the letter guessed (if correct) is added to the starWord.
+
+void DrawHangman(gameHangman&);
+//Precondition: the object currentGame has been declared.
+//Postcondition: incorrect guesses are displayed.
+//Description: lets the user know number of incorrect guesses and a hangman is drawn.
+
+void PrintPlayerResults(vector <gameHangman> gameList, int gameCount);
+//Precondition: gameCount variable and gameList vector must be declared before calling the function.
+//Postcondition: game results are printed.
+//Description: prints the list of players onto the screen and into an output file.
+
+//Main function:
+int main()
+{
+	string name;
+	string yesOrNo = "y";
+	gameHangman currentPlayer; // current player
+	gameHangman currentGame; // current game
+	vector <gameHangman> gameList; // declare a vector of gameHangman objects
+	int gameCount = 0; // count the number of games
+	
+	ifstream in; // connect to the input file 
+	in.open("words.txt"); // open the file 
+	if (in.fail()) //file did not open correctly
+	{
+		cout << "Input file did not open correctly" << endl;
+		exit(1);
+	}
+
+	HangmanRules(); // displays the rules of the game 
+	
+	// ask the user if they want to play
+	cout << "Do you want to play the hangman game? (y(Y) or n(N)): ";
+	cin >> yesOrNo;
+
+	while (yesOrNo != "n" && yesOrNo != "N")
+	{	
+		cout << "Enter your first name: "; // asks the user for their name
+		cin >> currentPlayer.name; // into the member variable name
+		
+		//add the current player to the vector gameList
+		gameList.push_back(currentPlayer);
+
+		//pass the file, the name, and the current game object to PlayOneRound
+		PlayOneRound(in, gameList[gameCount].name, gameList[gameCount]);
+
+		gameCount++; // after one round, add one to the gamecount
+
+		//ask the user if they want another round
+		cout << "Do you want to play another round? (Y (yes) or N (no)): ";
+		cin >> yesOrNo;
+	}
+	// they entered n or N to end the game (goodbye and thanks).
+	cout << "\nThank you for playing, have a great day!\n"; 
+
+	PrintPlayerResults(gameList, gameCount); // displays results onto the screen and into a file
+	return  0;
+}
+
+//*************************************************************************************
+//Name: HangmanRules
+//Precondition: no variables need to be declared before calling this function.
+//Postcondition: the rules of the hangman game are displayed.
+//Description: displays the hangman game rules.
+//*************************************************************************************
+void HangmanRules()
+{
+	//rules of the game
+	cout << "\t\t\tWELCOME TO HANGMAN!" << endl << endl << endl;
+	cout << "\tPlease read the following instructions before you play:" << endl << endl;
+	cout << "\t- You will be presented with a word to be guessed(starword)" << endl;
+	cout << "\t- Guess the letters one at a time, all lowercase letters!" << endl;
+	cout << "\t- You can have up to six incorrect letter guesses." << endl;
+	cout << "\t- The game is over when you guess all letters correctly(WIN) OR" << endl;
+	cout << "\t\twhen you have guessed letters incorrectly SIX times(LOSS)." << endl << endl;
+	cout << "\tHAVE FUN!" << endl << endl;
+}
+
+//*************************************************************************************
+//Name: PlayOneRound
+//Precondition: the program has connected to the input file, the data variable (string) 
+//               and object (gameHangman) have been declared.
+//			    The string has a value before calling this function (const).
+//Postcondition: one round of the game Hangman has been completed.
+//Description: plays one round of the game Hangman.
+//*************************************************************************************
+void PlayOneRound(ifstream& in, const string& name, gameHangman& currentGame)
+{
+	SetUpOneRound(in, currentGame); //call SetUpOneRound function
+
+	//loop for one game round 
+	while (currentGame.incorrectCount < currentGame.maxGuesses && currentGame.wonOrLost == false)
+	{
+		GetLetterGuess(currentGame); // call the GetLetterGuess function	
+		UpdateLettersArray(currentGame); // call the UpdateLetterArray function
+
+		if (CorrectLetterGuess(currentGame)) //checks if the letter is in the word
+		{
+			cout << "\nThe letter was in the word!\n";
+
+			//check if it is the final letter (solution and star are equal)
+			if (currentGame.solutionWord== currentGame.starWord)
+			{
+				cout << "\nCongratulations " << currentGame.name << " you won that round!\n" << endl;
+				currentGame.wonOrLost = true;
+			}
+		}
+		else //the letter was not in the word
+		{
+			cout << endl << currentGame.name << ", your letter was not in the word." << endl;
+			cout << "You have added a body part!" << endl;
+			
+			currentGame.incorrectCount++; // adds one to incorrect count
+			DrawHangman(currentGame); // draws the hangman
+		}
+	}
+	//display the solution word
+	cout << "The word was " << currentGame.solutionWord << endl;
+	cout << "\n!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!!" << endl;
+}
+
+//*************************************************************************************
+//Name: SetUpOneRound
+//Precondition: the program has connected to the input file and currentGame has been declared. 
+//Postcondition: one round of the game has been set.
+//Description: sets up each round of the game, calls the function CreateStarArray.
+//*************************************************************************************
+void SetUpOneRound(ifstream& in, gameHangman& currentGame)
+{
+	currentGame.solutionWord = "";// clear the solution word
+	strcpy(currentGame.starWord, "");
+	strcpy(currentGame.letters, "");
+	currentGame.letterCount = 0; // letter count starts at 0
+	currentGame.letterGuess = ' '; // clear user guess string
+	currentGame.incorrectCount = 0; // reset the incorrect count
+	currentGame.maxGuesses = 6;
+	currentGame.wordLength = 0;
+	currentGame.correctLetter = false; // reset to false
+	currentGame.wonOrLost = false; // reset to false
+	in >> currentGame.solutionWord;
+	CreateStarArray(currentGame); // calling CreateStarArray function
+}
+
+//*************************************************************************************
+//Name: CreateStarArray
+//Precondition: the object currentGame has been declared.
+//Postcondition: creates the array of *.
+//Description: gets the length of the solution word and create the hint word of "*".
+//*************************************************************************************
+void CreateStarArray(gameHangman& currentGame)
+{
+	//get the length of the solution word
+	currentGame.wordLength = (int)currentGame.solutionWord.length();
+	
+	//use a loop to create the array of *
+	for (int i = 0; i < currentGame.wordLength; i++)
+	{
+		currentGame.starWord[i] = '*';
+	}
+	//add the null ('\0') character after the loop
+	currentGame.starWord[currentGame.wordLength] = '\0';
+}
+
+//*************************************************************************************
+//Name: GetLetterGuess
+//Precondition: the object currentGame has been declared.
+//Postcondition: //Postcondition: starWord and letters guessed are displayed. 
+//Description: displays the hint (star array) and the letters guessed so far.
+//             Gets a character guess from the user
+//*************************************************************************************
+void GetLetterGuess(gameHangman& currentGame)
+{
+	//display the starWord array
+	cout << "__________________________________________________" << endl << endl;
+	cout << "Here is the word so far: " << endl << "\t" << currentGame.starWord << endl;
+
+	//display the letters that have been guessed so far
+	cout << "Here are the letters guessed so far: " << endl << "\t" << currentGame.letters << endl << endl;
+	//get a letter guess from the user
+	cout << "Enter a letter: ";
+	cin >> currentGame.letterGuess;
+}
+
+//****************************************************************************************
+//Name: UpdateLettersArray
+//Precondition: the object currentGame has been declared.
+//Postcondition: the letter guessed is store in the letters array.
+//Description: add the guessed letter (correct and incorrect) to the letters guessed array.
+//****************************************************************************************
+void UpdateLettersArray(gameHangman& currentGame)
+{
+	//Add the letter guessed to the letters array
+	currentGame.letters[currentGame.letterCount] = currentGame.letterGuess;
+	currentGame.letterCount++;
+	currentGame.letters[currentGame.letterCount] = '\0'; // adds the null character
+}
+
+//*************************************************************************************
+//Name: CorrectLetterGuess
+//Precondition: the object currentGame has been declared.
+//Postcondition: checks if the letter guessed is in the solution.
+//Description: if the letter guessed is in the solution word, adds the letter to the
+//             hint (starword) and returns true.
+//*************************************************************************************
+bool CorrectLetterGuess(gameHangman& currentGame)
+{
+	bool rv = false;
+	//use a loop to search the solution word
+	for (int i = 0; i < currentGame.wordLength; i++)
+	{	
+		//if the letter is found
+		if (currentGame.letterGuess == currentGame.solutionWord[i])
+		{
+			rv = true;
+			//replace the letters in the starword
+			currentGame.starWord[i] = currentGame.letterGuess;
+		}
+	}
+	return rv;
+}
+
+//***********************************************************************************
+//Name: DrawHangman
+//Precondition: the object currentGame has been declared.
+//Postcondition: incorrect guesses are displayed.
+//Description: lets the user know number of incorrect guesses and a hangman is drawn.
+//***********************************************************************************
+void DrawHangman(gameHangman& currentGame)
+{
+	cout << "\n___________________________________________________\n";
+	if (currentGame.incorrectCount == 0) // no wrong guesses
+	{cout << "\nYou have no incorrect guesses yet!" << endl;}
+	else if (currentGame.incorrectCount == 1) // one wrong guess
+	{
+		//head is drawn
+		cout << "\t(1 of 6 incorrect guesses)" << endl;;
+		cout << "\t +-----+" << endl;
+		cout << "\t |     |" << endl;
+		cout << "\t O     |" << endl;
+		cout << "\t       |" << endl;
+		cout << "\t       |" << endl;
+	}
+	else if (currentGame.incorrectCount == 2) // two wrong guesses
+	{
+		//another bodypart is drawn
+		cout << "\t(2 of 6 incorrect guesses)" << endl;
+		cout << "\t +-----+" << endl;
+		cout << "\t |     |" << endl;
+		cout << "\t O     |" << endl;
+		cout << "\t/      |" << endl;
+		cout << "\t       |" << endl;
+	}
+	else if (currentGame.incorrectCount == 3) // three wrong guesses
+	{
+		//another bodypart is drawn
+		cout << "\t(3 of 6 incorrect guesses)" << endl;;
+		cout << "\t +-----+" << endl;
+		cout << "\t |     |" << endl;
+		cout << "\t O     |" << endl;
+		cout << "\t/|     |" << endl;
+		cout << "\t       |" << endl;
+	}
+	else if (currentGame.incorrectCount == 4)// four wrong guesses
+	{
+		//another bodypart is drawn
+		cout << "\t(4 of 6 incorrect guesses)" << endl;;
+		cout << "\t +-----+" << endl;
+		cout << "\t |     |" << endl;
+		cout << "\t O     |" << endl;
+		cout << "\t/|/    |" << endl;
+		cout << "\t       |" << endl;
+	}
+	else if (currentGame.incorrectCount == 5) // five wrong guesses
+	{
+		//another bodypart is drawn
+		cout << "\t(5 of 6 incorrect guesses)" << endl;;
+		cout << "\t +-----+" << endl;
+		cout << "\t |     |" << endl;
+		cout << "\t O     |" << endl;
+		cout << "\t/|/    |" << endl;
+		cout << "\t/      |" << endl;
+	}
+	else if (currentGame.incorrectCount == 6) // six wrong guesses
+	{
+		//entire body is drawn
+		cout << "\t(6 of 6 incorrect guesses)" << endl;;
+		cout << "\t +-----+" << endl;
+		cout << "\t |     |" << endl;
+		cout << "\t O     |" << endl;
+		cout << "\t/|/    |" << endl;
+		cout << "\t//     |" << endl;
+		cout << "\tGAME OVER" << endl;
+			
+	}
+	else cout << "\ncount is not recognized";
+}
+
+//************************************************************************************************
+//Name: PrintPlayerResults
+//Precondition: gameCount variable and gameList vector must be declared before calling the function.
+//Postcondition: game results are printed.
+//Description: connects to an output file and prints the list of players (screen and output file) 
+//************************************************************************************************//Postcondition: creates the array of *.
+void PrintPlayerResults(vector <gameHangman> gameList, int gameCount)
+{
+	ofstream out; // to write on a file
+	char filename[40]; // filename can only have 40 characters
+	
+	cout << "Enter the filename: "; // user should enter filename with .txt extension
+	cin >> filename;
+	out.open(filename, ios::app); // opens the file
+
+	cout << "\n***********************************\n";
+	cout << "Name\t" << "won or lost\t" << "incorrect count\n";
+	//loop to print the vector (array) (name, WonOrLost, incorrect count) onto the screen
+	for (int i = 0; i < gameCount; i++)
+	{
+		cout << gameList[i].name << "\t" << gameList[i].wonOrLost << "\t\t" << gameList[i].incorrectCount << "\n";
+	}
+	out << "\n***********************************\n";
+	out << "Name\t" << "won or lost\t" << "incorrect count\n";
+	//loop to print the vector (array) (name, WonOrLost, incorrect count) into the file
+	for (int i = 0; i < gameCount; i++)
+	{
+		out << gameList[i].name << "\t" << gameList[i].wonOrLost << "\t\t" << gameList[i].incorrectCount << "\n";
+	}
+	out.close(); // closes the file
+}
