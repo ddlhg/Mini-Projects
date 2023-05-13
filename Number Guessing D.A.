@@ -1,0 +1,290 @@
+/*********************************PROGRAM HEADER************************************
+DANIELA HERRERA
+Description: number guessing game with a random number generator and a dynamic array
+***********************************************************************************/
+#include <iostream> // standard library for i/o
+#include <string> // always include this when you use the string class
+#include <fstream> // for files
+#include <ctime> // random number generator
+using namespace std;
+
+//A round of gameNumberGuess declaration 
+class gameNumberGuess
+{
+public:
+	int level = 0;  //game level (1 or 2) 
+	int maxGuesses = 0; //max number of guesses (example 5 or 8)
+	int upperValue = 0; //upper range value (example 100 or 1000)
+	int currentGuess = 0; //current guess input by the user
+	int solution = 0;  //pseudo random generated number
+	int smallNum = 0; //lower value for feedback
+	int largeNum = 0; //higher value for feedback
+	bool above = false; //current guess above the solution
+	bool below = false; //current guess below the solution
+	string name; //name of current player
+	bool wonOrLost = 0; //true or false for the current round of the game
+};
+
+//Function Prototypes:
+void TestAndDouble(gameNumberGuess*& gameList, int count, int& size);
+//Description: doubles the size of the array when count equals size.
+
+void PrintPlayerResults(gameNumberGuess gameList[], int gameCount);
+//Description: Connects to an output file. Prints the array results onto the screen and into the output file
+
+void PlayOneRound(const string& name, gameNumberGuess& currentGame);
+//Description: plays one round of the number guess game.
+
+void GenerateSolutionNumber(gameNumberGuess& currentGame);
+//Description: generates the solution number in the correct range.
+
+void SetUpLevel(gameNumberGuess& currentGame);
+//Description: sets up one round of the game (levels and ranges).
+
+void GetGuessInput(gameNumberGuess& currentGame);
+//Description: displays the range, prompts, and gets the next guess from the user.
+
+bool ProcessGuess(gameNumberGuess& currentGame);
+//Description: returns true(guess matches solution) or false (lets the user know if the guess was too high or too low)
+
+//Main function
+int main()
+{
+	string name, yesOrNo = "y";
+	gameNumberGuess* gameList; //declare an array of gameNumberGuess objects
+	int gameCount = 0; //counts the number of games
+	int size = 1; //declares and initialize size to 1
+	int count = 0; //declares and initialize count to 0
+	//use new to allocate memory to gameList of size 1
+	gameList = new gameNumberGuess[size]; //array has a size of one
+
+	//ask the user if they want to play
+	cout << "Do you want to play the number quessing game? (Y (yes) or N (no)): ";
+	cin >> yesOrNo;
+
+	while (yesOrNo != "n" && yesOrNo != "N")
+	{
+		//make sure the array is large enough 
+		TestAndDouble(gameList, count, size);
+
+		//ask for the name here, it may be a different player
+		cout << "Enter your first name: "; // asks the user for their name
+		cin >> gameList[gameCount].name; // into the member variable name
+		
+		PlayOneRound(name, gameList[gameCount]); //plays one round
+		gameCount++; //adds one to the gamecount
+
+		//ask the user if they want another round
+		cout << "Do you want to play another round? (Y (y) or N (n): ";
+		cin >> yesOrNo;
+		if (yesOrNo == "y" || yesOrNo == "Y")
+		{
+			count++;
+		}
+	}
+	PrintPlayerResults(gameList, gameCount); //prints results
+	cout << "\nThank you for playing, have a great day!"; //they entered n or N to end the game.
+	return  0;
+}
+
+//Function Implementations
+//*************************************************************************************
+//Name: TestAndDouble
+//Precondition:all variables need to be declare before calling the function. 
+//Postcondition:if the size of the array is not big enough to add a new player, the size will double.
+//Description:doubles the size of the array when count equals size. 
+//*************************************************************************************
+void TestAndDouble(gameNumberGuess*& gameList, int count, int& size)
+{
+	if (count == size)
+	{
+		size *= 2;
+		//create a new temp array
+		gameNumberGuess* temp = new gameNumberGuess[size];
+
+		//copy all the objects into the temp array
+		for (int i = 0; i < count; i++)
+		{temp[i] = gameList[i];}
+				
+		delete[] gameList; //deletes the gameList pointer
+		gameList = temp; //points gameList to temp
+	}
+}
+
+//*************************************************************************************
+//Name: PrintPlayerResults
+//Precondition: all variable must be declared before calling the function.
+//Postcondition: all of the game's results will be printed.
+//Description: connects to an output file. Prints the array results onto the screen and into the output file.
+//*************************************************************************************
+void PrintPlayerResults(gameNumberGuess gameList[], int gameCount)
+{
+	ofstream out; // to write on a file
+	char filename[40]; // filename can only have 40 characters
+	
+	cout << "Enter the filename: "; //user should enter filename with .txt extension
+	cin >> filename;
+	out.open(filename, ios::app); // opens the file
+
+	cout << "\n***********************************\n";
+	cout << "Name\t" << "Level\t" << "won or lost\n";
+	//use a loop to print the array (name, level, WonOrLost) onto the screen
+	for (int i = 0; i < gameCount; i++)
+	{
+		cout << gameList[i].name << "\t" << gameList[i].level << "\t\t" << gameList[i].wonOrLost << "\n";
+	}
+
+	out << "\n***********************************\n";
+	out << "Name\t" << "Level\t" << "won or lost\n";
+	//use a loop to print the array (name, level, WonOrLost) into the file
+	for (int i = 0; i < gameCount; i++)
+	{
+		out << gameList[i].name << "\t" << gameList[i].level << "\t\t" << gameList[i].wonOrLost << "\n";
+	}
+	
+	out.close(); //closes the file
+}
+
+//*************************************************************************************
+//Name: PlayOneRound
+//Precondition: The data variable (string) and object (gameNumberGuess) have been declared
+//		     	the string has a value before calling this function
+//Postcondition: One round of the game Number Guess has been completed
+//Description: plays one round of the game Number Guess.
+//*************************************************************************************
+void PlayOneRound(const string& name, gameNumberGuess& currentGame)
+{
+	//call the SetUpLevel function
+	SetUpLevel(currentGame);
+	//generate the random number solution
+	GenerateSolutionNumber(currentGame);
+
+	//initalize bool and high/low values
+	currentGame.above = 0;
+	currentGame.below = 0;
+	currentGame.smallNum = 1;
+	currentGame.largeNum = currentGame.upperValue;
+
+	for (int i = 1; i <= currentGame.maxGuesses; i++) //counting loop for maxGuesses
+	{
+		//tell the user what guess number they are on
+		cout << "\nThis is guess number (" << i << " of " << currentGame.maxGuesses << ")";
+		//get the next guess
+		GetGuessInput(currentGame);
+		//reset above, below, and wonOrLost bool values to false
+		currentGame.below = 0;
+		currentGame.above = 0;
+		currentGame.wonOrLost = 0;
+
+		if (ProcessGuess(currentGame)) //if true, the guess matches with the solution
+		{
+			cout << "\nYou won that round, " << currentGame.name << "!\n";
+			currentGame.wonOrLost = 1; //add a win for that round
+			i = currentGame.maxGuesses; //stops the loop without a break statement
+		}
+		else if (i== currentGame.maxGuesses)
+		{
+			cout << "\nYou did not win that round, " << currentGame.name << "!\n";
+		}
+	}
+	//display the solution when they win or lose
+	cout << "\nTHE SOLUTION WAS " << currentGame.solution << endl;
+}
+
+//*************************************************************************************
+//Name: SetUpLevel
+//Precondition: The object (gameNumberGuess) has been declared before calling this function
+//Postcondition: The member variables have been reset for a round of the game
+//Description: sets up one round of the game (levels and ranges).
+//*************************************************************************************
+void SetUpLevel(gameNumberGuess& currentGame)
+{
+	do
+	{	//display and get the levels
+		cout << "\nWhat level (Enter 1 or 2)?" << endl;
+		cout << "Level (1): 5 guesses, numbers 1 through 100" << endl;
+		cout << "Level (2): 8 guesses, numbers 1 through 1000" << endl;
+		cin >> currentGame.level;
+
+	} while (currentGame.level > 2 || currentGame.level < 1);
+
+	if (currentGame.level == 1) //sets values if level is '1'
+	{
+		currentGame.upperValue = 100;
+		currentGame.maxGuesses = 5;
+	}
+	
+	else if (currentGame.level == 2) //sets values if level is '2'
+	{
+		currentGame.upperValue = 1000;
+		currentGame.maxGuesses = 8;
+	}
+	else cout << "That is not a valid level\n"; //user entered something other than "1" or "2"
+}
+
+//*************************************************************************************
+//Name: GetGuessInput
+//Precondition: The object (gameNumberGuess) has been declared before calling this function
+//Postcondition: the user has entered a guess inside the range.
+//Description: displays the range, prompts, and gets the next guess from the user.
+//*************************************************************************************
+void GetGuessInput(gameNumberGuess& currentGame)
+{
+
+	if (currentGame.below) //currentGuess<below
+	{
+		if (currentGame.smallNum < currentGame.currentGuess)
+		{
+			currentGame.smallNum = currentGame.currentGuess;
+		}
+	}
+	
+	else if (currentGame.above) //currentGuess<above
+	{
+		if (currentGame.largeNum > currentGame.currentGuess)
+		{
+			currentGame.largeNum = currentGame.currentGuess;
+		}
+	}
+	//display the range where the solution number is
+	cout << "\nEnter a guess between " << currentGame.smallNum << " and " << currentGame.largeNum << ":";
+	cin >> currentGame.currentGuess; //gets the next guess
+}
+
+//*************************************************************************************
+//Name: ProcessGuess
+//Precondition: the object (gameNumberGuess) has been declared before calling this function.
+//Postcondition: returns true(guess matches the solution) or false(guess was too high or too low)
+//Description: returns true(guess matches solution) or false (lets the user know if the guess was too high or too low)
+//*************************************************************************************
+bool ProcessGuess(gameNumberGuess& currentGame)
+{
+	if (currentGame.currentGuess > currentGame.solution)
+	{
+		cout << "\nYour guess was too high.";
+		currentGame.above = true;
+		return false; //guess to high
+	}
+	else if (currentGame.currentGuess < currentGame.solution)
+	{
+		cout << "\nYour guess was too low.";
+		currentGame.below = true;
+		return false; //guess to low
+	}
+	else //currentGame.currentGuess = currentGame.solution
+	{
+		return true;
+	}
+}
+
+//*************************************************************************************
+//Name: GenerateSolutionNumber
+//Precondition: the object (gameNumberGuess) has been declared before calling this function.
+//Postcondition: the solution number is generated.
+//Description: generates the solution number in the correct range.
+//*************************************************************************************
+void GenerateSolutionNumber(gameNumberGuess& currentGame)
+{
+	srand((unsigned)time(0));
+	currentGame.solution = 1 + rand() % currentGame.upperValue;
+}
